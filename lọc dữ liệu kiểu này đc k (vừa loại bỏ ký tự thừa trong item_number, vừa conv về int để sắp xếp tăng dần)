@@ -1,0 +1,34 @@
+WITH
+  sale_pack_bottles AS (
+  SELECT
+    REPLACE(item_number,'x','') AS Item_No,
+    UPPER(item_description) AS Label,
+    pack,
+    bottle_volume_ml,
+    SUM(bottles_sold) AS Sold_bottles,
+  FROM
+    `bigquery-public-data.iowa_liquor_sales.sales`
+  GROUP BY
+    1,
+    2,
+    3,
+    4
+  ORDER BY
+    1 ASC,
+    SUM(bottles_sold) DESC),
+  sale_pack_bottles_ranking AS (
+  SELECT
+    CAST(Item_No AS int64) AS Item_Number,
+    Label,
+    pack,
+    bottle_volume_ml,
+    Sold_bottles,
+    RANK() OVER(PARTITION BY Item_No ORDER BY Sold_bottles DESC) AS Ranking
+  FROM
+    sale_pack_bottles QUALIFY RANK() OVER(PARTITION BY Item_No ORDER BY Sold_bottles DESC) =1)
+SELECT
+  *
+FROM
+  sale_pack_bottles_ranking
+ORDER BY
+  Item_Number;
